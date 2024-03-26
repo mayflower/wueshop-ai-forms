@@ -27,3 +27,7 @@ Dabei weiß der Nutzer vielleicht nicht, ob oder welche Formulare er braucht um 
 - `streamlit run streamlit_app.py --server.port=8501` startet Gradio
 
 Die App sollte dann unter `http://127.0.0.1:8501/` laufen
+
+### PDF Loaders
+
+Dazu gibt es eine [Langchain Doku](https://python.langchain.com/docs/modules/data_connection/document_loaders/pdf)

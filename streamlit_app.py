@@ -1,6 +1,7 @@
 import streamlit as st
 
 from form_helper import llm
+from pdf_loader import loader
 
 st.title("Form Helper")
 
@@ -14,3 +15,8 @@ with st.form("my_form"):
     if submitted:
         answer = llm.invoke(text).content
         st.info(answer)
+
+load_button = st.button("Load Document")
+if load_button:
+    load_result = loader.load()
+    st.text_area("Load Result:", value=str(load_result))
