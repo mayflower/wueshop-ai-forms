@@ -7,7 +7,7 @@ Dabei weiß der Nutzer vielleicht nicht, ob oder welche Formulare er braucht um 
 
 ## Techstack
 
-- Fürs Frontend ist Streamlit vorinstalliert. Falls das nicht ausreicht, muss man ggf. mit einem echten Frontend aufrüsten
+- Fürs Frontend ist [Streamlit](https://docs.streamlit.io/get-started/fundamentals/main-concepts#development-flow) vorinstalliert. Falls das nicht ausreicht, muss man ggf. mit einem echten Frontend aufrüsten
 - Der Agent wird mit LangChain und einem OpenAI-Modell gebaut.
 
 ## Setup
