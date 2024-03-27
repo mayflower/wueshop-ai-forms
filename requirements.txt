@@ -18,6 +18,7 @@ cryptography==42.0.5
 dataclasses-json==0.6.4
 distlib==0.3.8
 distro==1.9.0
+duckduckgo-search==5.0
 dulwich==0.21.7
 fastjsonschema==2.19.1
 filelock==3.13.3

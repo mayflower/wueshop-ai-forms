@@ -17,7 +17,7 @@ with st.form("chatbot_form"):
     submitted = st.form_submit_button("Submit")
     if submitted:
         st.session_state.current_answer = st.session_state.app.invoke(
-            HumanMessage(text), config=config
+            {"messages": [HumanMessage(content=text)]}, config=config
         )
     if "current_answer" in st.session_state:
         st.info(st.session_state.current_answer)
