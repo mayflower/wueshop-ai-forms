@@ -22,9 +22,9 @@ Dabei weiß der Nutzer vielleicht nicht, ob oder welche Formulare er braucht um 
 
 ### Lokal mit poetry
 - [poetry installieren](https://python-poetry.org/docs/#installation)
-- `poetry install` installiert die Python-Umgebung
+- `poetry install` installiert die Python-Umgebung.
 - `poetry shell` öffnet eine shell im Terminal mit der eben installierten Python-Umgebung
-- `streamlit run streamlit_app.py --server.port=8501` startet Gradio
+- `streamlit run streamlit_app.py --server.port=8501` startet die Streamlit App.
 
 
 ###
