@@ -1,11 +1,15 @@
 import streamlit as st
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_community.chat_message_histories import SQLChatMessageHistory
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 from form_helper import initialize_app
 from pdf_loader import loader
 
 initialize_app()
-config = {"configurable": {"thread_id": "1"}}
+
+# memory = SqliteSaver.from_conn_string(":memory:")
+config = {"configurable": {"thread_id": "1"}, "recursion_limit": 100}
 st.title("Form Helper")
 
 
@@ -17,7 +21,15 @@ with st.form("chatbot_form"):
     submitted = st.form_submit_button("Submit")
     if submitted:
         st.session_state.current_answer = st.session_state.app.invoke(
-            {"messages": [HumanMessage(content=text)]}, config=config
+            {
+                "messages": [
+                    SystemMessage(
+                        content="Du bist ein hilfreicher Assistent. Wenn du eine Frage nicht beantworten kannst, lass es mich gerne wissen. Gehe Schritt für Schritt vor. Wenn du ein Tool benutzen willst, erkläre mir warum."
+                    ),
+                    HumanMessage(content=text),
+                ]
+            },
+            config=config,
         )
     if "current_answer" in st.session_state:
         st.info(st.session_state.current_answer)
