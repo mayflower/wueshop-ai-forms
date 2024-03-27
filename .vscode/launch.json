@@ -1,0 +1,25 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Streamlit",
+            "type": "python",
+            "request": "launch",
+            "module": "streamlit",
+            "env": {
+                // any .env variables you may have
+                "STREAMLIT_APP": "streamlit_app.py",
+                "STREAMLIT_ENV": "development",
+            },
+            "args": [
+                "run",
+                "streamlit_app.py"
+            ],
+            "jinja": true,
+            "justMyCode": true
+        }
+    ]
+}
