@@ -19,7 +19,15 @@ from langchain.agents.agent_toolkits import create_retriever_tool
 from langchain.memory import ConversationBufferWindowMemory
 from langgraph.checkpoint.sqlite import SqliteSaver
 
+from langchain_community.document_loaders.text import TextLoader
+from langchain_community.vectorstores.faiss import FAISS
+from langchain_openai import OpenAIEmbeddings
+from langchain_text_splitters import CharacterTextSplitter
+from langchain_community.document_loaders.pdf import PyPDFLoader
+from langchain_core.documents import Document
 
+
+db = None
 @tool
 def geheimzahl_tool():
     """Das ist dein Tool - nutze es nur für die Geheimzahl
@@ -27,9 +35,40 @@ def geheimzahl_tool():
     print("invoking geheimzahl tool")
     return "Die Geheimzahl ist 123987"
 
+@tool
+def document_tool(message: Annotated[str, "Eine Zusammenfassung der Vorhaben des Nutzers"]) -> Annotated[List[Document], "Eine Liste aller gefundenen Dokumente"]:
+    """Wenn nach einem Fest oder Veranstaltung gefragt wird, nutze dieses Tool. Teile dem Nutzer immer mit welche Dateien wichtig sind."""
+    docs_and_scores = db.similarity_search_with_score(message)
+    print(len(docs_and_scores))
+    return_docs = []
+    for doc in docs_and_scores:
+        print(doc)
+        return_docs.append(doc)
+
+    return return_docs
+
+
+def rag_initialize():
+    embeddings = OpenAIEmbeddings()
+
+
+    loader = TextLoader("./playground/state_of_the_union.txt")
+    documents = loader.load()
+    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+    docs = text_splitter.split_documents(documents)
+    global db
+    db = FAISS.from_documents(docs, embeddings)
+    #print(db.index.ntotal)
+
+    loader = PyPDFLoader(file_path="./playground/schankerlaubnis.pdf")
+    documents = loader.load()
+    #text = pages[0].page_content
+    #db = FAISS.from_documents(docs, embeddings)
+    db.add_documents(documents=documents)
+    
 
 ddgs = DuckDuckGoSearchRun()
-tools = [geheimzahl_tool]
+tools = [geheimzahl_tool, document_tool]
 
 
 load_dotenv()
@@ -41,12 +80,12 @@ class AgentState(TypedDict):
 
 def initialize_app():
     if "app" not in st.session_state:
-        # set_debug(True)
+        set_debug(True)
+        rag_initialize()
         llm = ChatOpenAI()
         conn = sqlite3.connect(":memory:", check_same_thread=False)
         model_with_tools = llm.bind_tools(tools)
         memory = SqliteSaver(conn=conn)
-
         def agent(state):
             print("invoking agent", state)
             messages = state["messages"]

@@ -16,7 +16,7 @@ st.title("Form Helper")
 with st.form("chatbot_form"):
     text = st.text_area(
         "Enter text:",
-        "Please enter your question to the LLM here.",
+        "Ich will ein Fest feiern und Alkohol trinken.",
     )
     submitted = st.form_submit_button("Submit")
     if submitted:
@@ -24,7 +24,7 @@ with st.form("chatbot_form"):
             {
                 "messages": [
                     SystemMessage(
-                        content="Du bist ein hilfreicher Assistent. Wenn du eine Frage nicht beantworten kannst, lass es mich gerne wissen. Gehe Schritt für Schritt vor. Wenn du ein Tool benutzen willst, erkläre mir warum."
+                        content="Du bist Mitarbeiter im Bürgerbüro der Stadt Würzburg und Zuständig für die Veranstaltungsplaung von Vereinen. Es ist von absolut kritischer Wichtigkeit, dass alle informationen die du herausgibst aus deinen zur Verfügung stehenden Tools stammen!"
                     ),
                     HumanMessage(content=text),
                 ]
