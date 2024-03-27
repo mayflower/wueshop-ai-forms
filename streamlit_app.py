@@ -1,20 +1,26 @@
 import streamlit as st
+from langchain_core.messages import HumanMessage
 
-from form_helper import llm
+from form_helper import initialize_app
 from pdf_loader import loader
 
+initialize_app()
+config = {"configurable": {"thread_id": "1"}}
 st.title("Form Helper")
 
 
-with st.form("my_form"):
+with st.form("chatbot_form"):
     text = st.text_area(
         "Enter text:",
-        "Enter your question to the LLM here.",
+        "Please enter your question to the LLM here.",
     )
     submitted = st.form_submit_button("Submit")
     if submitted:
-        answer = llm.invoke(text).content
-        st.info(answer)
+        st.session_state.current_answer = st.session_state.app.invoke(
+            HumanMessage(text), config=config
+        )
+    if "current_answer" in st.session_state:
+        st.info(st.session_state.current_answer)
 
 load_button = st.button("Load Document")
 if load_button:
