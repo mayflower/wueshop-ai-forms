@@ -20,12 +20,21 @@ text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 docs = text_splitter.split_documents(documents)
 
 db = FAISS.from_documents(docs, embeddings)
-print(db.index.ntotal)
+#print(db.index.ntotal)
 
 loader = PyPDFLoader(file_path="./playground/schankerlaubnis.pdf")
 documents = loader.load()
 #text = pages[0].page_content
 #db = FAISS.from_documents(docs, embeddings)
 db.add_documents(documents=documents)
+
+retriever = db.as_retriever(search_type="mmr")
+docs = retriever.get_relevant_documents("ich will alkohol trinken.")
+print(len(docs))
+for doc in docs[:5]:
+    print(f"content={doc.page_content}")
+    print()
+    print(f"metadata={doc.metadata}") #doc.metadata)
+    #print(doc)
 
 
