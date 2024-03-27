@@ -43,7 +43,7 @@ db.add_documents(documents=documents)
 
 
 retriever = db.as_retriever(search_type="mmr")
-query = "ich will alkohol trinken."
+query = "welche Formulare gibt es für die Beantragung einer Veranstaltung?"
 
 # docs = retriever.get_relevant_documents(query)
 # print(len(docs))
