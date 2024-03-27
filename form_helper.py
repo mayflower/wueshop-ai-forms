@@ -1,3 +1,4 @@
+import sqlite3
 from typing import List
 
 import streamlit as st
@@ -13,7 +14,8 @@ load_dotenv()
 def initialize_app():
     if "app" not in st.session_state:
         llm = ChatOpenAI()
-        memory = SqliteSaver.from_conn_string(":memory:")
+        conn = sqlite3.connect(":memory:", check_same_thread=False)
+        memory = SqliteSaver(conn=conn)
         workflow = MessageGraph()
         workflow.add_node("chatbot", llm)
         workflow.set_entry_point("chatbot")
