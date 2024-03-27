@@ -20,17 +20,15 @@ Dabei weiß der Nutzer vielleicht nicht, ob oder welche Formulare er braucht um 
 - `docker compose build --no-cache`
 - `docker compose up`
 
-### Lokal mit poetry
+### Lokal mit Poetry
 - [poetry installieren](https://python-poetry.org/docs/#installation)
 - `poetry install` installiert die Python-Umgebung.
-- `poetry shell` öffnet eine shell im Terminal mit der eben installierten Python-Umgebung
+- `poetry shell` öffnet eine Shell mit der eben installierten Python-Umgebung
 - `streamlit run streamlit_app.py --server.port=8501` startet die Streamlit App.
 
 
-###
-
-Entscheidungshilfe bitte. Was soll ich machen. Docker oder Lokal?
-- Lokal ist meist simpler. Debuggen, Hot reload und Python-Pakete nachinstallieren geht flotter. Für dieses Projekt vermutlich empfehlenswert.
+### Entscheidungshilfe bitte. Was soll ich machen. Docker oder Lokal?
+- Lokal (mit Poetry) ist meist simpler. Debuggen, Hot reload und Python-Pakete nachinstallieren geht flotter. Für dieses Projekt vermutlich empfehlenswert.
 - Mit Docker stellt man sicher, dass es wirklich auch bei jedem Teammitglied funktioniert. Falls man mehrere Unterprojekte hat (Frontend, 2 Backends, Datenbank etc...) kommt man um Docker nicht mehr herum.
 
 ### Fertig?
