@@ -1,3 +1,4 @@
+import sqlite3
 from typing import List
 import json
 import streamlit as st
@@ -30,8 +31,9 @@ def initialize_app():
     if "app" not in st.session_state:
         set_debug(True)
         llm = ChatOpenAI()
+        conn = sqlite3.connect(":memory:", check_same_thread=False)
         model_with_tools = llm.bind_tools(tools)
-        memory = SqliteSaver.from_conn_string(":memory:")
+        memory = SqliteSaver(conn=conn)
 
         def agent(state):
             print("invoking agent", state)
