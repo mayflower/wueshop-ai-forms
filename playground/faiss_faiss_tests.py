@@ -28,13 +28,34 @@ documents = loader.load()
 #db = FAISS.from_documents(docs, embeddings)
 db.add_documents(documents=documents)
 
-retriever = db.as_retriever(search_type="mmr")
-docs = retriever.get_relevant_documents("ich will alkohol trinken.")
-print(len(docs))
-for doc in docs[:5]:
-    print(f"content={doc.page_content}")
-    print()
-    print(f"metadata={doc.metadata}") #doc.metadata)
-    #print(doc)
 
+# faiss_index = 10
+
+# # Get the ID of the document in the docstore
+# doc_id = db.index_to_docstore_id[faiss_index]
+
+# # Retrieve the document from the docstore
+# document = db.docstore.search(doc_id)
+
+# Now you have the document
+# print(document)
+
+
+
+retriever = db.as_retriever(search_type="mmr")
+query = "ich will alkohol trinken."
+
+# docs = retriever.get_relevant_documents(query)
+# print(len(docs))
+# for doc in docs:
+#     print(f"content={doc.page_content}")
+#     #print(f"content={doc.}")
+#     print()
+#     print(f"metadata={doc.metadata}") #doc.metadata)
+#     #print(doc)
+
+docs_and_scores = db.similarity_search_with_score(query)
+print(len(docs_and_scores))
+for doc in docs_and_scores:
+    print(doc)
 
