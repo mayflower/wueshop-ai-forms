@@ -36,6 +36,7 @@ class Berater:
 
     def create_berater_graph():
         planer_tool = Planer.planer_invoker()
+        max_tool = Max.planer_invoker()
 
         def berater_agent(state: __class__.BeraterState):
             messages = state["messages"]
@@ -138,7 +139,59 @@ class Fachspezialist:
 
 
 class Max:
-    pass
+    class MaxState(TypedDict):
+        messages: Annotated[List[BaseMessage], operator.add]
+        next: str
+
+    systemPrompt = """
+            Du bist ein Experte für Kommunikation und musst Texte oder Listen in eine einfache und übersichtliche Form bringen.
+            Du hilfst einem Berater eine Kundenanfrage zu bearbeiteten und wirst dazu Informationen von einem Planer erhalten.
+            Gib dir Mühe die relevanten Informationen klar darzulegen. Wenn du das Gefühl hast, dass dir Infos fehlen, frage nach.
+            Denke daran, der Erfolg des Beraters und die Zufriedenheit des Kunden hängen von deinen Formulierungen der Antwort ab.
+        """
+
+    def create_max_graph():
+        model = ChatOpenAI(model="gpt-4-1106-preview", temperature=0)
+
+        def max_agent(state: __class__.MaxState):
+            messages = state["messages"]
+            response = model.invoke(messages)
+            return {"messages": [response]}
+
+        workflow = StateGraph("MaxState")
+        workflow.add_node("max", max_agent)
+        workflow.set_entry_point("max")
+        workflow.add_edge("max", END)
+
+        graph = workflow.compile(debug=True)
+        return graph
+
+    def enter_chain_direct(message: str):
+        def init(x: str):
+            return {
+                "messages": [
+                    SystemMessage(content=__class__.systemPrompt),
+                    HumanMessage(content=x),
+                ]
+            }
+
+        return init(message)
+
+    def enter_chain(messages: List[BaseMessage]):
+        def init(x: List[BaseMessage]):
+            return {"messages": [SystemMessage(content=__class__.systemPrompt)] + x}
+
+        return init(messages)
+
+    def extract_answer(max_state: dict):
+        return max_state["messages"][-1]
+
+    def max_invoker():
+        return (
+            __class__.enter_chain
+            | __class__.create_max_graph()
+            | __class__.extract_answer
+        )
 
 
 class Controller:
