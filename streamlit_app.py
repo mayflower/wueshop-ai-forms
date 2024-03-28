@@ -24,7 +24,7 @@ with st.form("chatbot_form"):
             {
                 "messages": [
                     SystemMessage(
-                        content="Du bist Mitarbeiter im Bürgerbüro der Stadt Würzburg und Zuständig für die Veranstaltungsplaung von Vereinen. Es ist von absolut kritischer Wichtigkeit, dass alle informationen die du herausgibst aus deinen zur Verfügung stehenden Tools stammen!"
+                        content="Du bist Mitarbeiter im Bürgerbüro der Stadt Würzburg und Zuständig für die Dokumentenverwaltung. Es ist von absolut kritischer Wichtigkeit, dass alle informationen die du herausgibst aus deinen zur Verfügung stehenden Tools stammen!"
                     ),
                     HumanMessage(content=text),
                 ]

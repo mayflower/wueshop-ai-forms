@@ -25,9 +25,10 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import CharacterTextSplitter
 from langchain_community.document_loaders.pdf import PyPDFLoader
 from langchain_core.documents import Document
-
+from playground.documents_store import DocumentsStore
 
 db = None
+document_store: DocumentsStore = DocumentsStore(embeddings=OpenAIEmbeddings(), documents_dir_path="data_resources")
 @tool
 def geheimzahl_tool():
     """Das ist dein Tool - nutze es nur für die Geheimzahl
@@ -36,16 +37,17 @@ def geheimzahl_tool():
     return "Die Geheimzahl ist 123987"
 
 @tool
-def document_tool(message: Annotated[str, "Eine Zusammenfassung der Vorhaben des Nutzers"]) -> Annotated[List[Document], "Eine Liste aller gefundenen Dokumente"]:
+def document_tool(message: Annotated[str, "Eine Zusammenfassung der Vorhaben des Nutzers"]) -> Annotated[dict[str, List[str]|None], "Ein Dictionary mit Pfad zur Datei als Key und Wert ist eine Liste von Texten aus Dokumenten"]:
     """Wenn nach einem Fest oder Veranstaltung gefragt wird, nutze dieses Tool. Teile dem Nutzer immer mit welche Dateien wichtig sind."""
-    docs_and_scores = db.similarity_search_with_score(message)
-    print(len(docs_and_scores))
-    return_docs = []
-    for doc in docs_and_scores:
-        print(doc)
-        return_docs.append(doc)
+    return document_store.retrieve(message)
+    # docs_and_scores = db.similarity_search_with_score(message)
+    # print(len(docs_and_scores))
+    # return_docs = []
+    # for doc in docs_and_scores:
+    #     print(doc)
+    #     return_docs.append(doc)
 
-    return return_docs
+    # return return_docs
 
 
 def rag_initialize():
@@ -60,10 +62,14 @@ def rag_initialize():
     db = FAISS.from_documents(docs, embeddings)
     #print(db.index.ntotal)
 
-    loader = PyPDFLoader(file_path="./playground/schankerlaubnis.pdf")
-    documents = loader.load()
-    #text = pages[0].page_content
-    #db = FAISS.from_documents(docs, embeddings)
+    titles: list = ["./data_resources/Schankerlaubnis.pdf", "./data_resources/STK-Ehrenamtsleitfaden_2023_Online.pdf", "./data_resources/Unterlagen_Veranstaltungsorganisation_09.01.24.pdf"]
+
+    documents: list = []
+    for title in titles:
+        loader = PyPDFLoader(file_path=title)
+        document = loader.load()
+        documents += document
+
     db.add_documents(documents=documents)
     
 
@@ -81,7 +87,7 @@ class AgentState(TypedDict):
 def initialize_app():
     if "app" not in st.session_state:
         set_debug(True)
-        rag_initialize()
+        # rag_initialize()
         llm = ChatOpenAI()
         conn = sqlite3.connect(":memory:", check_same_thread=False)
         model_with_tools = llm.bind_tools(tools)
