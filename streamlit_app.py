@@ -1,10 +1,9 @@
 import streamlit as st
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_community.chat_message_histories import SQLChatMessageHistory
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 from form_helper import initialize_app
 from pdf_loader import loader
+from playground.departments import Planer
 
 initialize_app()
 
@@ -31,8 +30,42 @@ with st.form("chatbot_form"):
             },
             config=config,
         )
+
     if "current_answer" in st.session_state:
         st.info(st.session_state.current_answer)
+
+with st.form("planner_form"):
+
+    def formatter(state):
+        if state is None or len(state["messages"]) == 0:
+            return "No Messages"
+        return state["messages"][-1].content
+
+    submitted = st.form_submit_button("Submit Planner")
+    planer_invoke = Planer.planer_invoker() | formatter
+
+    if "planer" not in st.session_state:
+        st.session_state["planer"] = {
+            "app": planer_invoke,
+            "current_answer": None,
+        }
+
+    text = st.text_area(
+        "Planer:",
+        "Was muss ich tun, um in planerWürzburg ein Fest zu feiern?",
+    )
+    if submitted:
+        st.session_state.planer["current_answer"] = st.session_state.planer[
+            "app"
+        ].invoke(
+            text,
+            config=config,
+        )
+    if (
+        "current_answer" in st.session_state.planer
+        and st.session_state.planer.get("current_answer") is not None
+    ):
+        st.info(st.session_state.planer["current_answer"])
 
 load_button = st.button("Load Document")
 if load_button:
