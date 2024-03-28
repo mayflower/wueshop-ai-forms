@@ -13,7 +13,7 @@ st.title("Form Helper")
 
 
 with st.form("chatbot_form"):
-    text = st.text_area(
+    ui_input_text = st.text_area(
         "Enter text:",
         "Ich will ein Fest feiern und Alkohol trinken.",
     )
@@ -25,7 +25,7 @@ with st.form("chatbot_form"):
                     SystemMessage(
                         content="Du bist Mitarbeiter im Bürgerbüro der Stadt Würzburg und Zuständig für die Dokumentenverwaltung. Es ist von absolut kritischer Wichtigkeit, dass alle informationen die du herausgibst aus deinen zur Verfügung stehenden Tools stammen!"
                     ),
-                    HumanMessage(content=text),
+                    HumanMessage(content=ui_input_text),
                 ]
             },
             config=config,
@@ -42,15 +42,15 @@ with st.form("berater_form"):
         return state["messages"][-1].content
 
     submitted = st.form_submit_button("Submit Berater")
-    berater_invoke = Berater.berater_invoker() | formatter
+    berater_supervised_graph = Berater.create_berater_graph()
 
     if "berater" not in st.session_state:
         st.session_state["berater"] = {
-            "app": berater_invoke,
+            "app": berater_supervised_graph,
             "current_answer": None,
         }
 
-    text = st.text_area(
+    ui_input_text = st.text_area(
         "berater:",
         "Was muss ich tun, um in Würzburg ein Fest zu feiern? Antworte in einem Satz!",
     )
@@ -58,14 +58,17 @@ with st.form("berater_form"):
         st.session_state.berater["current_answer"] = st.session_state.berater[
             "app"
         ].invoke(
-            text,
+            {
+                "messages": [HumanMessage(content=ui_input_text)],
+            },
             config=config,
         )
     if (
         "current_answer" in st.session_state.berater
         and st.session_state.berater.get("current_answer") is not None
     ):
-        st.info(st.session_state.berater["current_answer"])
+        # TODO: better formatting
+        st.info(st.session_state.berater["current_answer"]["messages"][-1].content)
 
 load_button = st.button("Load Document")
 if load_button:

@@ -1,5 +1,10 @@
 """
-Team-Conversation:
+Aufbau-Ideen-Klau:
+https://python.langchain.com/docs/langgraph#multi-agent-examples
+
+Hierachical: https://github.com/langchain-ai/langgraph/blob/main/examples/multi_agent/hierarchical_agent_teams.ipynb
+
+Team-Conversation:>
 # User -> Berater -> Planer
 # User -> Berater -> DataManager -> Fachspezialist
 # User -> Berater -> Max
@@ -17,9 +22,82 @@ Fachspezialist
 import operator
 from typing import Annotated, List, TypedDict
 
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
-from langgraph.graph import END, MessageGraph, StateGraph
+from langgraph.graph import END, StateGraph
+
+from langchain.agents import AgentExecutor, create_openai_functions_agent
+from langchain.output_parsers.openai_functions import JsonOutputFunctionsParser
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+
+
+def create_agent(
+    llm: ChatOpenAI,
+    tools: list,
+    system_prompt: str,
+) -> str:
+    """Create a function-calling agent and add it to the graph."""
+    system_prompt += "\nWork autonomously according to your specialty, using the tools available to you."
+    " Do not ask for clarification."
+    " Your other team members (and other teams) will collaborate with you with their own specialties."
+    " You are chosen for a reason! You are one of the following team members: {team_members}."
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                system_prompt,
+            ),
+            MessagesPlaceholder(variable_name="messages"),
+            MessagesPlaceholder(variable_name="agent_scratchpad"),
+        ]
+    )
+    agent = create_openai_functions_agent(llm, tools, prompt)
+    executor = AgentExecutor(agent=agent, tools=tools)
+    return executor
+
+
+def agent_node(state, agent, name):
+    result = agent.invoke(state)
+    return {"messages": [HumanMessage(content=result["output"], name=name)]}
+
+
+def create_team_supervisor(llm: ChatOpenAI, system_prompt, members):
+    """An LLM-based router."""
+    options = ["FINISH"] + members
+    function_def = {
+        "name": "route",
+        "description": "Select the next role.",
+        "parameters": {
+            "title": "routeSchema",
+            "type": "object",
+            "properties": {
+                "next": {
+                    "title": "Next",
+                    "anyOf": [
+                        {"enum": options},
+                    ],
+                },
+            },
+            "required": ["next"],
+        },
+    }
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system_prompt),
+            MessagesPlaceholder(variable_name="messages"),
+            (
+                "system",
+                "Given the conversation above, who should act next?"
+                " Or should we FINISH? Select one of: {options}",
+            ),
+        ]
+    ).partial(options=str(options), team_members=", ".join(members))
+    nextfunc_res = (
+        prompt
+        | llm.bind_functions(functions=[function_def], function_call="route")
+        | JsonOutputFunctionsParser()
+    )
+    return nextfunc_res
 
 
 def formatter(state):
@@ -29,29 +107,88 @@ def formatter(state):
 
 
 class Berater:
-    class BeraterState:
+    class BeraterState(TypedDict):
         messages: Annotated[List[BaseMessage], operator.add]
         next: str
         current_answer: str
 
     def create_berater_graph():
-        planer_tool = Planer.planer_invoker()
-        max_tool = Max.planer_invoker()
+        model = ChatOpenAI(model="gpt-4-1106-preview", temperature=0)
 
-        def berater_agent(state: __class__.BeraterState):
+        def planer_agent(state: __class__.BeraterState):
+            planer_tool = Planer.planer_invoker()
             messages = state["messages"]
             response = planer_tool.invoke(messages)
-            return {"messages": [response], "current_answer": response}
+            return {
+                "messages": messages
+                + [SystemMessage(name="plan", content=response.content)],
+                "current_answer": response,
+            }
+
+        def max_agent(state: __class__.BeraterState):
+            max_tool = Max.max_invoker()
+            messages = state["messages"]
+            response = max_tool.invoke(messages)
+            return {
+                "messages": messages
+                + [SystemMessage(name="redaktion", content=response.content)],
+                "current_answer": response,
+            }
+
+        berater_agent = create_agent(
+            model,
+            [],
+            "Du bist ein freundlicher Kundenberater. Frage den Planer nach Anweisungen, was zu tun ist.",
+        )
+
+        supervisor_router = create_team_supervisor(
+            model,
+            "Sie sind ein Supervisor, der mit der Leitung eines Gesprächs zwischen den"
+            " folgenden Teams beauftragt ist: {team_members}. Angesichts der folgenden Benutzeranforderung,"
+            " antworten Sie mit dem Arbeiter, der als nächstes handeln soll. Jeder Arbeiter wird eine"
+            " Aufgabe ausführen und mit seinen Ergebnissen und Status antworten. Wenn fertig,"
+            " antworten Sie mit FINISH."
+            " Jeder Arbeiter wird nur einmal gefragt und antwortet mindestens einmal."
+            " Du kannst einen Arbeiter nur ein mal fragen, wenn du mit seiner bisherigen Arbeit unzufrieden warst."
+            " Bevor eine Antwort gegeben wird, muss die Redaktion mindestens ein mal angefragt worden sein. Auf jeden Fall zuletzt.",
+            ["Planung", "Redaktion"],
+        )
+
+        def supervisor_node(state):
+            return {
+                **(supervisor_router.invoke({"messages": state["messages"]})),
+                "messages": state["messages"],
+            }
 
         workflow = StateGraph("beraterState")
-        workflow.add_node("berater", berater_agent)
-        workflow.set_entry_point("berater")
-        workflow.add_edge("berater", END)
+        workflow.add_node("supervisor", supervisor_node)
+        workflow.set_entry_point("supervisor")
+
+        workflow.add_node("planer", planer_agent)
+        workflow.add_edge("planer", "supervisor")
+
+        workflow.add_node("redaktion", max_agent)
+        workflow.add_edge("redaktion", "supervisor")
+
+        # workflow.add_node("berater", berater_agent)
+        # workflow.add_edge("berater", "supervisor")
+
+        workflow.add_conditional_edges(
+            "supervisor",
+            lambda state: state["next"],
+            {
+                "Planung": "planer",
+                "Redaktion": "redaktion",
+                # "Kundenkontakt": "berater",
+                "FINISH": END,
+            },
+        )
 
         graph = workflow.compile(debug=True)
         return graph
 
     def enter_chain(message: str):
+        # TODO: Use supervisor thingies
         systemPrompt = """
             Du bist ein freundlicher Kundenberater. Frage den Planer nach Anweisungen, was zu tun ist.
         """
@@ -66,8 +203,9 @@ class Berater:
 
         return init(message)
 
-    def berater_invoker():
-        return __class__.enter_chain | __class__.create_berater_graph()
+    # TODO
+    # def berater_invoker():
+    #     return __class__.enter_chain | __class__.create_berater_graph()
 
 
 class Planer:
